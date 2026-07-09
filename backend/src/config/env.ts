@@ -20,7 +20,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
   JWT_EXPIRES_IN: z.string().min(1).default('7d'),
-  CORS_ORIGIN: z.string().min(1, 'CORS_ORIGIN is required'),
+  // Optional: a comma-separated allow-list of browser origins. When unset the
+  // server still boots (CORS is a browser-only concern) and simply rejects
+  // cross-origin requests until it's configured — this avoids a hard crash
+  // during first deploy before the frontend URL is known. server.ts warns on
+  // boot when it's empty in production.
+  CORS_ORIGIN: z.string().optional().default(''),
   UPLOAD_DIR: z.string().min(1).default('./uploads'),
   SMTP_HOST: z.string().min(1).optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
