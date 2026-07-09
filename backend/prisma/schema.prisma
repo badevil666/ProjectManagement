@@ -1,0 +1,276 @@
+// Client Portal — Prisma schema
+// Source of truth for the data model. Backend code (types, repositories,
+// services) must derive from this schema, not the other way around.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ModuleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+enum FeatureStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum FeaturePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AuthorType {
+  ADMIN
+  CLIENT
+}
+
+enum StorageProvider {
+  LOCAL
+  S3
+  R2
+}
+
+enum NotificationType {
+  MODULE_COMPLETED
+  FEATURE_COMPLETED
+  PROJECT_COMPLETED
+  COMMENT_ADDED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum ActivityType {
+  PROJECT_CREATED
+  PROJECT_STATUS_CHANGED
+  MODULE_CREATED
+  MODULE_COMPLETED
+  FEATURE_CREATED
+  FEATURE_COMPLETED
+  FILE_UPLOADED
+  COMMENT_ADDED
+  SHARE_LINK_CREATED
+  SHARE_LINK_REVOKED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  projectsCreated   Project[]      @relation("ProjectCreatedBy")
+  filesUploaded     File[]
+  shareLinksCreated ShareLink[]
+
+  @@map("users")
+}
+
+model Client {
+  id            String   @id @default(uuid())
+  companyName   String   @map("company_name")
+  contactPerson String   @map("contact_person")
+  email         String   @unique
+  phone         String?
+  address       String?
+  industry      String?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  projects Project[]
+
+  @@map("clients")
+}
+
+model Project {
+  id                String          @id @default(uuid())
+  clientId          String          @map("client_id")
+  client            Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  status            ProjectStatus   @default(PLANNING)
+  priority          ProjectPriority @default(MEDIUM)
+  startDate         DateTime?       @map("start_date")
+  expectedEndDate   DateTime?       @map("expected_end_date")
+  actualEndDate     DateTime?       @map("actual_end_date")
+  overallProgress   Int             @default(0) @map("overall_progress")
+  budget            Decimal?        @db.Decimal(12, 2)
+  currency          String          @default("USD")
+  createdBy         String          @map("created_by")
+  creator           User            @relation("ProjectCreatedBy", fields: [createdBy], references: [id])
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  modules       Module[]
+  files         File[]
+  comments      Comment[]
+  notifications Notification[]
+  shareLinks    ShareLink[]
+  activities    Activity[]
+
+  @@index([clientId])
+  @@map("projects")
+}
+
+model Module {
+  id             String       @id @default(uuid())
+  projectId      String       @map("project_id")
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  orderNumber    Int          @map("order_number")
+  status         ModuleStatus @default(NOT_STARTED)
+  estimatedHours Decimal?     @db.Decimal(8, 2) @map("estimated_hours")
+  completedAt    DateTime?    @map("completed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  features Feature[]
+  files    File[]
+
+  @@index([projectId])
+  @@map("modules")
+}
+
+model Feature {
+  id             String          @id @default(uuid())
+  moduleId       String          @map("module_id")
+  module         Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  status         FeatureStatus   @default(TODO)
+  priority       FeaturePriority @default(MEDIUM)
+  orderNumber    Int             @map("order_number")
+  estimatedHours Decimal?        @db.Decimal(8, 2) @map("estimated_hours")
+  completedAt    DateTime?       @map("completed_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([moduleId])
+  @@map("features")
+}
+
+model File {
+  id              String          @id @default(uuid())
+  projectId       String          @map("project_id")
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  moduleId        String?         @map("module_id")
+  module          Module?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  name            String
+  url             String
+  size            Int
+  mimeType        String          @map("mime_type")
+  uploadedBy      String?         @map("uploaded_by")
+  uploader        User?           @relation(fields: [uploadedBy], references: [id])
+  storageProvider StorageProvider @default(LOCAL) @map("storage_provider")
+  storageKey      String          @map("storage_key")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([moduleId])
+  @@map("files")
+}
+
+model Comment {
+  id         String     @id @default(uuid())
+  projectId  String     @map("project_id")
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorType AuthorType @map("author_type")
+  authorName String     @map("author_name")
+  message    String
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("comments")
+}
+
+model Notification {
+  id             String              @id @default(uuid())
+  projectId      String              @map("project_id")
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recipientEmail String              @map("recipient_email")
+  type           NotificationType
+  status         NotificationStatus  @default(PENDING)
+  message        String
+  errorMessage   String?             @map("error_message")
+  sentAt         DateTime?           @map("sent_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("notifications")
+}
+
+model ShareLink {
+  id             String    @id @default(uuid())
+  projectId      String    @map("project_id")
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  token          String    @unique
+  expiresAt      DateTime? @map("expires_at")
+  revoked        Boolean   @default(false)
+  accessCount    Int       @default(0) @map("access_count")
+  lastAccessedAt DateTime? @map("last_accessed_at")
+  createdBy      String?   @map("created_by")
+  creator        User?     @relation(fields: [createdBy], references: [id])
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("share_links")
+}
+
+model Activity {
+  id        String       @id @default(uuid())
+  projectId String       @map("project_id")
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      ActivityType
+  message   String
+  createdBy String?      @map("created_by")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("activities")
+}

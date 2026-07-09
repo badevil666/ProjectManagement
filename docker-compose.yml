@@ -1,0 +1,106 @@
+# Client Portal — local Docker Compose stack.
+#
+# One command: `docker compose up --build` brings up Postgres, the backend
+# API (running `prisma migrate deploy` on boot), and the frontend (built
+# static assets served by nginx, proxying /api/* to the backend).
+#
+# Seeding demo data (admin user, demo clients/projects/share link) is a
+# separate, manual step — see README.md "Docker" section — because
+# auto-seeding on every container start would also fire against a real
+# production database if this same image is ever deployed with `prisma
+# migrate deploy`-style automation (e.g. Render). Run it once after the
+# stack is healthy:
+#
+#   docker compose exec backend npm run prisma:seed
+#
+# All values below mirror backend/.env.example and frontend/.env.example.
+# Override any of them by exporting the variable in your shell or adding a
+# root-level `.env` file (see `.env.example` at the repo root for the
+# compose-only Postgres credentials) before running `docker compose up`.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: client_portal
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d client_portal']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # --- matches backend/.env.example -----------------------------------
+      NODE_ENV: production
+      PORT: 4000
+      # Built from the postgres service's own credentials above, over the
+      # compose network hostname "postgres" (service name = DNS name).
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/client_portal?schema=public
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      UPLOAD_DIR: /app/uploads
+      # SMTP_* use bare-key passthrough (no `${...}` substitution) rather
+      # than `SMTP_HOST: ${SMTP_HOST}`: with `${...}`, Compose substitutes
+      # an *empty string* when the variable is unset, which config/env.ts
+      # would reject as invalid (SMTP_HOST is optional, but not empty) and
+      # crash the server on boot. With the bare-key form below, Compose
+      # instead passes each variable through from its own environment (the
+      # shell, or a root .env file — see .env.example) only when it's
+      # actually set there, and omits it entirely otherwise — preserving
+      # the log-and-skip default (see config/env.ts) when SMTP isn't
+      # configured. Set all five in a root `.env` to enable real Gmail SMTP
+      # sending against this compose stack.
+      SMTP_HOST:
+      SMTP_PORT:
+      SMTP_USER:
+      SMTP_PASS:
+      SMTP_FROM:
+      # --- seed script only (prisma/seed.ts), not read by the server -----
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin User}
+    ports:
+      - '4000:4000'
+    volumes:
+      - backend_uploads:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:4000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - '5173:80'
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  backend_uploads:

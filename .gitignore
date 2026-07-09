@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# Root .gitignore — repo-wide safety net.
+#
+# backend/.gitignore and frontend/.gitignore already scope node_modules,
+# dist, .env, and uploads/* within their own package directories; the
+# patterns below exist for anything at the repo root (a root .env file used
+# for docker-compose overrides, OS/editor cruft) plus a couple of Docker
+# Compose local-state artifacts that are only ever created at the root.
+# ---------------------------------------------------------------------------
+
+# Dependencies / build output at the repo root (defense in depth — each
+# package already ignores its own via backend/.gitignore / frontend/.gitignore).
+node_modules/
+dist/
+build/
+
+# Environment files — never commit real secrets, only the .example templates.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Uploaded file contents persisted by the backend's LocalStorageService when
+# run outside Docker from the repo root — keep the folder, ignore its
+# contents (backend/.gitignore already does this for backend/uploads
+# specifically; this covers any other top-level uploads/ path).
+uploads/*
+!uploads/.gitkeep
+
+# OS / editor cruft.
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Claude Code local (personal) settings — not shared.
+.claude/settings.local.json
