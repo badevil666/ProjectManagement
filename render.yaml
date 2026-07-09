@@ -1,0 +1,39 @@
+# Render Blueprint for the Client Portal backend (optional convenience).
+#
+# You can either:
+#   (a) Import this repo as a Blueprint in Render (New + → Blueprint), which
+#       reads this file and provisions the service, then fill in the two
+#       `sync: false` secrets (DATABASE_URL, CORS_ORIGIN) in the dashboard, OR
+#   (b) Create the Web Service manually — see README.md "Deployment" and the
+#       chat walkthrough.
+#
+# The database is Neon (external), so it is NOT defined here — you provide its
+# connection string via the DATABASE_URL secret.
+
+services:
+  - type: web
+    name: client-portal-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects its own PORT; the app reads it automatically.
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong random value
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      # Set these two in the Render dashboard after creating the service:
+      - key: DATABASE_URL # Neon connection string (?sslmode=require)
+        sync: false
+      - key: CORS_ORIGIN # your Vercel URL, e.g. https://your-app.vercel.app
+        sync: false
+      # Optional email — add all five ONLY if you want notifications, with real
+      # values (a blank SMTP_PORT will fail validation). Leave unset to disable.
+      # SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
