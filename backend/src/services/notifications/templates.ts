@@ -1,5 +1,5 @@
 import type { EmailModuleSummary, ProjectProgressSnapshot } from '../progressService';
-import type { FeatureStatus, ModuleStatus } from '@prisma/client';
+import type { FeatureStatus, ModuleStatus, ProjectStatus } from '@prisma/client';
 
 export interface EmailContent {
   subject: string;
@@ -55,6 +55,20 @@ const MODULE_STATUS: Record<ModuleStatus, { label: string; kind: PillKind }> = {
   IN_PROGRESS: { label: 'In progress', kind: 'info' },
   BLOCKED: { label: 'Blocked', kind: 'danger' },
   COMPLETED: { label: 'Completed', kind: 'success' },
+};
+
+const PROJECT_STATUS: Record<ProjectStatus, { label: string; kind: PillKind }> = {
+  PLANNING: { label: 'Planning', kind: 'neutral' },
+  IN_PROGRESS: { label: 'In progress', kind: 'info' },
+  ON_HOLD: { label: 'On hold', kind: 'warning' },
+  COMPLETED: { label: 'Completed', kind: 'success' },
+  CANCELLED: { label: 'Cancelled', kind: 'danger' },
+};
+
+const FEATURE_PILL_KIND: Record<FeatureStatus, PillKind> = {
+  TODO: 'neutral',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
 };
 
 const FEATURE_STATUS: Record<FeatureStatus, { label: string; dot: string }> = {
@@ -257,90 +271,125 @@ function modulesBreakdownText(snapshot: ProjectProgressSnapshot): string {
   return `\n\nProgress: ${snapshot.overallProgress}%\n\nModules & features:\n${lines.join('\n')}`;
 }
 
-export function moduleCompletedTemplate(params: {
+export function moduleUpdateTemplate(params: {
   projectTitle: string;
   moduleTitle: string;
+  status: ModuleStatus;
   progress: ProjectProgressSnapshot;
 }): EmailContent {
-  const { projectTitle, moduleTitle, progress } = params;
+  const { projectTitle, moduleTitle, status, progress } = params;
+  const complete = status === 'COMPLETED';
+  const mod = MODULE_STATUS[status];
   return {
-    subject: `Module completed: ${moduleTitle}`,
+    subject: complete
+      ? `Module completed: ${moduleTitle}`
+      : `Update on "${moduleTitle}" — ${projectTitle}`,
     html: layout({
-      preheader: `"${moduleTitle}" in ${projectTitle} is complete — ${progress.overallProgress}% overall.`,
-      pillHtml: pill('Completed', 'success'),
-      heading: 'Module completed',
+      preheader: complete
+        ? `"${moduleTitle}" in ${projectTitle} is complete — ${progress.overallProgress}% overall.`
+        : `Latest on "${moduleTitle}" in ${projectTitle} — ${progress.overallProgress}% overall.`,
+      pillHtml: pill(mod.label, mod.kind),
+      heading: complete ? 'Module completed' : 'Module update',
       bodyHtml:
         lead(
-          `A module in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> has been marked complete.`,
+          complete
+            ? `The <strong style="color:${C.ink};">${escapeHtml(moduleTitle)}</strong> module in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> is complete.`
+            : `Here's the latest on the <strong style="color:${C.ink};">${escapeHtml(moduleTitle)}</strong> module in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong>.`,
         ) +
         detailBlock([
           { label: 'Project', value: projectTitle },
           { label: 'Module', value: moduleTitle },
+          { label: 'Status', value: mod.label },
         ]) +
         progressSection(progress.overallProgress) +
         modulesBreakdown(progress.modules),
     }),
     text:
-      `Module completed\n\nThe module "${moduleTitle}" in project "${projectTitle}" has been marked as completed.` +
+      (complete
+        ? `Module completed\n\nThe module "${moduleTitle}" in project "${projectTitle}" is complete.`
+        : `Module update\n\n"${moduleTitle}" in project "${projectTitle}" — status: ${mod.label}.`) +
       modulesBreakdownText(progress),
   };
 }
 
-export function featureCompletedTemplate(params: {
+export function featureUpdateTemplate(params: {
   projectTitle: string;
   moduleTitle: string;
   featureTitle: string;
+  status: FeatureStatus;
   progress: ProjectProgressSnapshot;
 }): EmailContent {
-  const { projectTitle, moduleTitle, featureTitle, progress } = params;
+  const { projectTitle, moduleTitle, featureTitle, status, progress } = params;
+  const complete = status === 'COMPLETED';
+  const label = FEATURE_STATUS[status].label;
   return {
-    subject: `Feature completed: ${featureTitle}`,
+    subject: complete
+      ? `Feature completed: ${featureTitle}`
+      : `Update on "${featureTitle}" — ${projectTitle}`,
     html: layout({
-      preheader: `"${featureTitle}" in ${projectTitle} is complete — ${progress.overallProgress}% overall.`,
-      pillHtml: pill('Completed', 'success'),
-      heading: 'Feature completed',
+      preheader: complete
+        ? `"${featureTitle}" in ${projectTitle} is complete — ${progress.overallProgress}% overall.`
+        : `Latest on "${featureTitle}" in ${projectTitle} — ${progress.overallProgress}% overall.`,
+      pillHtml: pill(label, FEATURE_PILL_KIND[status]),
+      heading: complete ? 'Feature completed' : 'Feature update',
       bodyHtml:
         lead(
-          `A feature in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> has been marked complete.`,
+          complete
+            ? `A feature in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> is complete.`
+            : `Here's the latest on a feature in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong>.`,
         ) +
         detailBlock([
           { label: 'Project', value: projectTitle },
           { label: 'Module', value: moduleTitle },
           { label: 'Feature', value: featureTitle },
+          { label: 'Status', value: label },
         ]) +
         progressSection(progress.overallProgress) +
         modulesBreakdown(progress.modules),
     }),
     text:
-      `Feature completed\n\nThe feature "${featureTitle}" (module "${moduleTitle}") in project "${projectTitle}" has been marked as completed.` +
+      (complete
+        ? `Feature completed\n\nThe feature "${featureTitle}" (module "${moduleTitle}") in project "${projectTitle}" is complete.`
+        : `Feature update\n\n"${featureTitle}" (module "${moduleTitle}") in project "${projectTitle}" — status: ${label}.`) +
       modulesBreakdownText(progress),
   };
 }
 
-export function projectCompletedTemplate(params: {
+export function projectUpdateTemplate(params: {
   projectTitle: string;
+  status: ProjectStatus;
   progress: ProjectProgressSnapshot;
 }): EmailContent {
-  const { projectTitle, progress } = params;
+  const { projectTitle, status, progress } = params;
+  const complete = status === 'COMPLETED';
+  const proj = PROJECT_STATUS[status];
   return {
-    subject: `Project completed: ${projectTitle}`,
+    subject: complete
+      ? `Project completed: ${projectTitle}`
+      : `Project update: ${projectTitle} (${progress.overallProgress}% complete)`,
     html: layout({
-      preheader: `${projectTitle} is complete. Thank you for working with us!`,
-      pillHtml: pill('Completed', 'success'),
-      heading: 'Your project is complete',
+      preheader: complete
+        ? `${projectTitle} is complete. Thank you for working with us!`
+        : `${projectTitle} — ${progress.overallProgress}% complete.`,
+      pillHtml: pill(proj.label, proj.kind),
+      heading: complete ? 'Your project is complete' : 'Project progress update',
       bodyHtml:
         lead(
-          `Great news — <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> has been delivered and marked complete. Thank you for working with us.`,
+          complete
+            ? `Great news — <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> has been delivered and marked complete. Thank you for working with us.`
+            : `Here's the latest progress on <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong>.`,
         ) +
         detailBlock([
           { label: 'Project', value: projectTitle },
-          { label: 'Status', value: 'Completed' },
+          { label: 'Status', value: proj.label },
         ]) +
         progressSection(progress.overallProgress) +
         modulesBreakdown(progress.modules),
     }),
     text:
-      `Your project is complete\n\nYour project "${projectTitle}" has been marked as completed. Thank you for working with us!` +
+      (complete
+        ? `Your project is complete\n\n"${projectTitle}" has been delivered and marked complete. Thank you for working with us!`
+        : `Project update\n\nHere's the latest progress on "${projectTitle}" — ${progress.overallProgress}% overall (status: ${proj.label}).`) +
       modulesBreakdownText(progress),
   };
 }

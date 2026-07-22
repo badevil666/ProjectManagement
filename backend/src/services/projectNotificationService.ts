@@ -4,9 +4,9 @@ import { NotFoundError, ValidationError } from '../utils/AppError';
 import type { NotificationService } from './notificationService';
 import type { ProgressService } from './progressService';
 import {
-  featureCompletedTemplate,
-  moduleCompletedTemplate,
-  projectCompletedTemplate,
+  featureUpdateTemplate,
+  moduleUpdateTemplate,
+  projectUpdateTemplate,
   type EmailContent,
 } from './notifications/templates';
 
@@ -63,35 +63,32 @@ export class ProjectNotificationService {
     if (input.kind === 'MODULE') {
       const module = project.modules.find((m) => m.id === input.moduleId);
       if (!module) throw new NotFoundError('Module not found in this project');
-      content = moduleCompletedTemplate({
+      content = moduleUpdateTemplate({
         projectTitle: project.title,
         moduleTitle: module.title,
+        status: module.status,
         progress,
       });
       type = 'MODULE_COMPLETED';
     } else if (input.kind === 'FEATURE') {
-      let featureTitle: string | undefined;
-      let moduleTitle: string | undefined;
-      for (const module of project.modules) {
-        const feature = module.features.find((f) => f.id === input.featureId);
-        if (feature) {
-          featureTitle = feature.title;
-          moduleTitle = module.title;
-          break;
-        }
-      }
-      if (!featureTitle || !moduleTitle) {
-        throw new NotFoundError('Feature not found in this project');
-      }
-      content = featureCompletedTemplate({
+      const found = project.modules
+        .flatMap((module) => module.features.map((feature) => ({ module, feature })))
+        .find((entry) => entry.feature.id === input.featureId);
+      if (!found) throw new NotFoundError('Feature not found in this project');
+      content = featureUpdateTemplate({
         projectTitle: project.title,
-        moduleTitle,
-        featureTitle,
+        moduleTitle: found.module.title,
+        featureTitle: found.feature.title,
+        status: found.feature.status,
         progress,
       });
       type = 'FEATURE_COMPLETED';
     } else {
-      content = projectCompletedTemplate({ projectTitle: project.title, progress });
+      content = projectUpdateTemplate({
+        projectTitle: project.title,
+        status: project.status,
+        progress,
+      });
       type = 'PROJECT_COMPLETED';
     }
 
