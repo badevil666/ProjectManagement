@@ -23,10 +23,9 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(THEME_KEY);
   if (stored === 'light' || stored === 'dark') return stored;
-  // Dark-first: this is a Vercel/Geist-style app, so with no persisted user
-  // preference we default to dark rather than following prefers-color-scheme.
-  // The toggle still lets users switch to (and persist) light mode.
-  return 'dark';
+  // Default to light mode when there's no persisted user preference. The toggle
+  // still lets users switch to (and persist) dark mode.
+  return 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
