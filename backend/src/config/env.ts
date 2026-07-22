@@ -32,6 +32,13 @@ const envSchema = z.object({
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASS: z.string().min(1).optional(),
   SMTP_FROM: z.string().min(1).optional(),
+  // Optional Brevo HTTP API transport. Preferred over SMTP when configured,
+  // because it sends over HTTPS (443) instead of an SMTP port — many hosts
+  // (e.g. Render) block/throttle outbound SMTP, so the API is far more
+  // reliable. Needs an API key + a Brevo-verified sender email.
+  BREVO_API_KEY: z.string().min(1).optional(),
+  BREVO_SENDER_EMAIL: z.string().email().optional(),
+  BREVO_SENDER_NAME: z.string().min(1).default('Client Portal'),
 });
 
 type SmtpConfig = {
@@ -40,6 +47,12 @@ type SmtpConfig = {
   user: string;
   pass: string;
   from: string;
+};
+
+export type BrevoConfig = {
+  apiKey: string;
+  senderEmail: string;
+  senderName: string;
 };
 
 export interface AppEnv {
@@ -52,6 +65,7 @@ export interface AppEnv {
   corsOrigins: string[];
   uploadDir: string;
   smtp: SmtpConfig | null;
+  brevo: BrevoConfig | null;
 }
 
 function loadEnv(): AppEnv {
@@ -94,6 +108,15 @@ function loadEnv(): AppEnv {
       }
     : null;
 
+  const brevo: BrevoConfig | null =
+    data.BREVO_API_KEY && data.BREVO_SENDER_EMAIL
+      ? {
+          apiKey: data.BREVO_API_KEY,
+          senderEmail: data.BREVO_SENDER_EMAIL,
+          senderName: data.BREVO_SENDER_NAME,
+        }
+      : null;
+
   return {
     nodeEnv: data.NODE_ENV,
     isProduction: data.NODE_ENV === 'production',
@@ -106,6 +129,7 @@ function loadEnv(): AppEnv {
       .filter((origin) => origin.length > 0),
     uploadDir: data.UPLOAD_DIR,
     smtp,
+    brevo,
   };
 }
 

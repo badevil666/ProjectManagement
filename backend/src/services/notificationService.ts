@@ -1,11 +1,10 @@
 import type { NotificationType } from '@prisma/client';
-import type { Transporter } from 'nodemailer';
 import type {
   INotificationRepository,
   NotificationStatusUpdate,
 } from '../repositories/notificationRepository';
-import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import type { EmailSender } from './email/emailSender';
 import { commentAddedTemplate, type EmailContent } from './notifications/templates';
 
 interface DispatchParams {
@@ -29,7 +28,7 @@ interface DispatchParams {
 export class NotificationService {
   constructor(
     private readonly notificationRepository: INotificationRepository,
-    private readonly transporter: Transporter | null,
+    private readonly emailSender: EmailSender | null,
   ) {}
 
   /** Auto-sent to the client when an admin posts a comment. */
@@ -92,20 +91,19 @@ export class NotificationService {
         message: params.text,
       });
 
-      if (!this.transporter || !env.smtp) {
+      if (!this.emailSender) {
         logger.warn(
-          `SMTP not configured — skipping ${params.type} email to ${params.recipientEmail} (dev mode).`,
+          `No email transport configured — skipping ${params.type} email to ${params.recipientEmail}.`,
         );
         await this.safeUpdateStatus(notification.id, {
           status: 'FAILED',
-          errorMessage: 'SMTP not configured; email not sent (dev mode).',
+          errorMessage: 'Email transport not configured; email not sent.',
         });
         return false;
       }
 
       try {
-        await this.transporter.sendMail({
-          from: env.smtp.from,
+        await this.emailSender.send({
           to: params.recipientEmail,
           subject: params.subject,
           html: params.html,

@@ -22,7 +22,7 @@ import { CommentService } from './services/commentService';
 import { DashboardService } from './services/dashboardService';
 import { FeatureService } from './services/featureService';
 import { FileService } from './services/fileService';
-import { createMailTransporter } from './services/mailer';
+import { createEmailSender } from './services/mailer';
 import { ModuleService } from './services/moduleService';
 import { NotificationService } from './services/notificationService';
 import { ProgressService } from './services/progressService';
@@ -33,10 +33,10 @@ import { LocalStorageService } from './services/storage/LocalStorageService';
 import type { StorageService } from './services/storage/StorageService';
 
 export const storageService: StorageService = new LocalStorageService(env.uploadDir);
-const mailTransporter = createMailTransporter();
+const emailSender = createEmailSender();
 
 export const activityService = new ActivityService(activityRepository);
-export const notificationService = new NotificationService(notificationRepository, mailTransporter);
+export const notificationService = new NotificationService(notificationRepository, emailSender);
 export const progressService = new ProgressService(moduleRepository, projectRepository);
 export const projectNotificationService = new ProjectNotificationService(
   projectRepository,

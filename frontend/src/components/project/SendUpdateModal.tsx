@@ -87,8 +87,9 @@ export function SendUpdateModal({
           )}
           {result.failed > 0 && (
             <p className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
-              {result.failed} email{result.failed === 1 ? '' : 's'} couldn&rsquo;t be sent — this
-              usually means email (SMTP) isn&rsquo;t configured on the server.
+              {result.failed} email{result.failed === 1 ? '' : 's'} couldn&rsquo;t be sent — the
+              email service may not be configured, or the send was rejected. Check the server logs
+              for details.
             </p>
           )}
         </div>
