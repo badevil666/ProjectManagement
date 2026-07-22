@@ -1,0 +1,76 @@
+Phase,Stage (Milestone),Module,Feature,Est. Days,Status
+Phase 1,Stage 1 · Foundation,Project Setup & Infrastructure,Git repo + branching + CI/CD pipeline,,Not Started
+Phase 1,Stage 1 · Foundation,Project Setup & Infrastructure,Cloud infra provisioning (server + storage),,Not Started
+Phase 1,Stage 1 · Foundation,Project Setup & Infrastructure,Database schema (23 tables) + migrations,,Not Started
+Phase 1,Stage 1 · Foundation,Project Setup & Infrastructure,Backend API scaffold (REST + auth middleware),,Not Started
+Phase 1,Stage 1 · Foundation,Project Setup & Infrastructure,Mobile app scaffold (Flutter — Android & iOS),,Not Started
+Phase 1,Stage 1 · Foundation,Project Setup & Infrastructure,Web admin scaffold,,Not Started
+Phase 1,Stage 1 · Foundation,Authentication & Access Control,Registration & login (JWT),,Not Started
+Phase 1,Stage 1 · Foundation,Authentication & Access Control,Password reset / forgot password,,Not Started
+Phase 1,Stage 1 · Foundation,Authentication & Access Control,Role-based access control (7 roles),,Not Started
+Phase 1,Stage 1 · Foundation,Authentication & Access Control,Multi-role support per user,,Not Started
+Phase 1,Stage 1 · Foundation,Authentication & Access Control,Session management & token refresh,,Not Started
+Phase 1,Stage 1 · Foundation,User & Department Management,Department CRUD,,Not Started
+Phase 1,Stage 1 · Foundation,User & Department Management,User CRUD (internal & external),,Not Started
+Phase 1,Stage 1 · Foundation,User & Department Management,Role assignment to users,,Not Started
+Phase 1,Stage 1 · Foundation,User & Department Management,Bulk employee import (Excel / CSV),,Not Started
+Phase 1,Stage 1 · Foundation,User & Department Management,Profile management & profile picture,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Course Authoring,Course CRUD (difficulty / duration / thumbnail),,Not Started
+Phase 1,Stage 2 · Courses & Learning,Course Authoring,Mandatory / free / paid course flags,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Course Authoring,Module CRUD + ordering,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Course Authoring,Lesson CRUD + ordering,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Course Authoring,Publish / unpublish course,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Media & Content,Video upload + format validation,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Media & Content,Video transcoding / adaptive streaming (HLS),,Not Started
+Phase 1,Stage 2 · Courses & Learning,Media & Content,PDF upload & in-app viewer,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Media & Content,Multi-language subtitles (uploaded),,Not Started
+Phase 1,Stage 2 · Courses & Learning,Media & Content,AI-generated subtitles (from English track),,Not Started
+Phase 1,Stage 2 · Courses & Learning,Catalogue & Discovery,Course catalogue browse,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Catalogue & Discovery,Search & filters,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Catalogue & Discovery,Free-courses section,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Enrolment & Progress,Assign courses to staff / departments,,Not Started
+Phase 1,Stage 2 · Courses & Learning,Enrolment & Progress,Self-enrol (free courses),,Not Started
+Phase 1,Stage 2 · Courses & Learning,Enrolment & Progress,Lesson player (speed / skip / fullscreen / subtitles / resume),,Not Started
+Phase 1,Stage 2 · Courses & Learning,Enrolment & Progress,Progress tracking (watch % + last position),,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Quizzes & Assessment,Quiz builder (questions / options / marks),,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Quizzes & Assessment,Question pool + randomisation,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Quizzes & Assessment,Configurable attempts / time limit / passing %,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Quizzes & Assessment,Auto-grading & quiz attempts record,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Certificates,Certificate generation on completion,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Certificates,Types (Certificate / Badge / Award),,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Certificates,Validity period & expiry,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Certificates,Certificate wallet & download,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Dashboards,Employee dashboard (my courses / progress / certificates),,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Dashboards,Department / Manager dashboard,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Dashboards,Admin dashboard,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Notifications,In-app notifications,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Notifications,Email notifications,,Not Started
+Phase 1,Stage 3 · Quiz Certificates & Dashboards,Notifications,Notification preferences & cadence,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Reporting & Export,Completion / score reports,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Reporting & Export,Excel export,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Reporting & Export,Department-wise analytics,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Deadlines & Compliance,Due dates on enrolments,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Deadlines & Compliance,Overdue reminders & escalation,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Deadlines & Compliance,Mandatory course enforcement,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Feedback & Requests,Course ratings & reviews,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Feedback & Requests,Course requests (submit / approve),,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Feedback & Requests,Help & Support tickets,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Audit & Security,Audit log,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,Audit & Security,Security hardening pass,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,QA & Launch,Cross-device QA (Android & iOS),,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,QA & Launch,Bug-fix & polish,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,QA & Launch,App Store submission,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,QA & Launch,Play Store submission,,Not Started
+Phase 1,Stage 4 · Reporting & Go-Live,QA & Launch,UAT sign-off,,Not Started
+Phase 2,Phase 2 · Commercial,Payments,Payment gateway integration (Razorpay / Stripe / PayU),,Not Started
+Phase 2,Phase 2 · Commercial,Payments,Paid course purchase flow,,Not Started
+Phase 2,Phase 2 · Commercial,Payments,Transactions & refunds,,Not Started
+Phase 2,Phase 2 · Commercial,External Users,External learner self-registration,,Not Started
+Phase 2,Phase 2 · Commercial,External Users,External trainer onboarding,,Not Started
+Phase 2,Phase 2 · Commercial,External Users,Trainer create & price own courses,,Not Started
+Phase 2,Phase 2 · Commercial,External Users,Admin approval of external-trainer courses,,Not Started
+Phase 2,Phase 2 · Commercial,Sponsors & Ads,Sponsor portal,,Not Started
+Phase 2,Phase 2 · Commercial,Sponsors & Ads,Advertisement submission & scheduling,,Not Started
+Phase 2,Phase 2 · Commercial,Sponsors & Ads,Ad approval & display,,Not Started
+Phase 2,Phase 2 · Commercial,Commercial Admin,Revenue / sales reporting,,Not Started
+Phase 2,Phase 2 · Commercial,Commercial Admin,Payout / settlement management,,Not Started
