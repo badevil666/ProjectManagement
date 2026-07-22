@@ -21,5 +21,14 @@ export function createMailTransporter(): Transporter | null {
       user: env.smtp.user,
       pass: env.smtp.pass,
     },
+    // Reuse a single authenticated connection across sends (much faster than a
+    // fresh TLS + auth handshake per email, especially from a remote host).
+    pool: true,
+    maxConnections: 2,
+    // Fail fast instead of leaving the request hanging when the SMTP host is
+    // slow/unreachable (some platforms throttle or block outbound SMTP).
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
 }
