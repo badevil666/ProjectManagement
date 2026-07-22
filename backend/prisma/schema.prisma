@@ -115,6 +115,9 @@ model Client {
   companyName   String   @map("company_name")
   contactPerson String   @map("contact_person")
   email         String   @unique
+  // Additional company email addresses (beyond the primary `email`). Used as
+  // the pool of possible recipients when sending project update emails.
+  additionalEmails String[] @default([]) @map("additional_emails")
   phone         String?
   address       String?
   industry      String?

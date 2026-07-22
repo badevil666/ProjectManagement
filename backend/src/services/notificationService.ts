@@ -1,18 +1,12 @@
 import type { NotificationType } from '@prisma/client';
 import type { Transporter } from 'nodemailer';
-import type { ProjectProgressSnapshot } from './progressService';
 import type {
   INotificationRepository,
   NotificationStatusUpdate,
 } from '../repositories/notificationRepository';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
-import {
-  commentAddedTemplate,
-  featureCompletedTemplate,
-  moduleCompletedTemplate,
-  projectCompletedTemplate,
-} from './notifications/templates';
+import { commentAddedTemplate, type EmailContent } from './notifications/templates';
 
 interface DispatchParams {
   projectId: string;
@@ -24,10 +18,13 @@ interface DispatchParams {
 }
 
 /**
- * Wraps Nodemailer with HTML email templates. Every send first creates a
- * `Notification` row (`PENDING`), then updates it to `SENT`/`FAILED`.
- * Guaranteed to never throw — a failed or skipped (no SMTP configured) send
- * is caught and logged, never propagated into the request path.
+ * Low-level email sender. Every send first creates a `Notification` row
+ * (`PENDING`), then updates it to `SENT`/`FAILED`. Guaranteed to never throw —
+ * a failed or skipped (no SMTP configured) send is caught and logged.
+ *
+ * Completion emails are NOT sent from here automatically anymore; the admin
+ * triggers them explicitly (see ProjectNotificationService), which builds the
+ * email content and calls `sendToRecipients`.
  */
 export class NotificationService {
   constructor(
@@ -35,72 +32,7 @@ export class NotificationService {
     private readonly transporter: Transporter | null,
   ) {}
 
-  async notifyModuleCompleted(params: {
-    projectId: string;
-    recipientEmail: string;
-    projectTitle: string;
-    moduleTitle: string;
-    progress: ProjectProgressSnapshot;
-  }): Promise<void> {
-    const { subject, html, text } = moduleCompletedTemplate({
-      projectTitle: params.projectTitle,
-      moduleTitle: params.moduleTitle,
-      progress: params.progress,
-    });
-    await this.dispatch({
-      projectId: params.projectId,
-      recipientEmail: params.recipientEmail,
-      type: 'MODULE_COMPLETED',
-      subject,
-      html,
-      text,
-    });
-  }
-
-  async notifyFeatureCompleted(params: {
-    projectId: string;
-    recipientEmail: string;
-    projectTitle: string;
-    moduleTitle: string;
-    featureTitle: string;
-    progress: ProjectProgressSnapshot;
-  }): Promise<void> {
-    const { subject, html, text } = featureCompletedTemplate({
-      projectTitle: params.projectTitle,
-      moduleTitle: params.moduleTitle,
-      featureTitle: params.featureTitle,
-      progress: params.progress,
-    });
-    await this.dispatch({
-      projectId: params.projectId,
-      recipientEmail: params.recipientEmail,
-      type: 'FEATURE_COMPLETED',
-      subject,
-      html,
-      text,
-    });
-  }
-
-  async notifyProjectCompleted(params: {
-    projectId: string;
-    recipientEmail: string;
-    projectTitle: string;
-    progress: ProjectProgressSnapshot;
-  }): Promise<void> {
-    const { subject, html, text } = projectCompletedTemplate({
-      projectTitle: params.projectTitle,
-      progress: params.progress,
-    });
-    await this.dispatch({
-      projectId: params.projectId,
-      recipientEmail: params.recipientEmail,
-      type: 'PROJECT_COMPLETED',
-      subject,
-      html,
-      text,
-    });
-  }
-
+  /** Auto-sent to the client when an admin posts a comment. */
   async notifyCommentAdded(params: {
     projectId: string;
     recipientEmail: string;
@@ -124,10 +56,34 @@ export class NotificationService {
   }
 
   /**
-   * Core send pipeline. Every branch is wrapped so this method can never
-   * reject — callers may `await` it directly without try/catch.
+   * Sends a pre-built email to multiple recipients, recording one Notification
+   * row per recipient. Never throws; returns per-batch sent/failed counts.
    */
-  private async dispatch(params: DispatchParams): Promise<void> {
+  async sendToRecipients(params: {
+    projectId: string;
+    recipients: string[];
+    type: NotificationType;
+    content: EmailContent;
+  }): Promise<{ sent: number; failed: number }> {
+    let sent = 0;
+    let failed = 0;
+    for (const recipientEmail of params.recipients) {
+      const ok = await this.dispatch({
+        projectId: params.projectId,
+        recipientEmail,
+        type: params.type,
+        subject: params.content.subject,
+        html: params.content.html,
+        text: params.content.text,
+      });
+      if (ok) sent += 1;
+      else failed += 1;
+    }
+    return { sent, failed };
+  }
+
+  /** Core send pipeline. Never rejects; returns true only when actually sent. */
+  private async dispatch(params: DispatchParams): Promise<boolean> {
     try {
       const notification = await this.notificationRepository.create({
         projectId: params.projectId,
@@ -144,7 +100,7 @@ export class NotificationService {
           status: 'FAILED',
           errorMessage: 'SMTP not configured; email not sent (dev mode).',
         });
-        return;
+        return false;
       }
 
       try {
@@ -156,6 +112,7 @@ export class NotificationService {
           text: params.text,
         });
         await this.safeUpdateStatus(notification.id, { status: 'SENT', sentAt: new Date() });
+        return true;
       } catch (sendError) {
         logger.error(`Failed to send ${params.type} email to ${params.recipientEmail}`, sendError);
         await this.safeUpdateStatus(notification.id, {
@@ -163,11 +120,12 @@ export class NotificationService {
           errorMessage:
             sendError instanceof Error ? sendError.message : 'Unknown error sending email',
         });
+        return false;
       }
     } catch (error) {
-      // Even notification-row bookkeeping failures must never bubble into
-      // the request path.
+      // Even notification-row bookkeeping failures must never bubble up.
       logger.error(`Notification dispatch failed entirely for ${params.type}`, error);
+      return false;
     }
   }
 

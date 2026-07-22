@@ -9,4 +9,5 @@ export * from './features';
 export * from './files';
 export * from './shareLinks';
 export * from './comments';
+export * from './notifications';
 export * from './share';

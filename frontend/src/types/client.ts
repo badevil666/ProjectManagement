@@ -5,6 +5,8 @@ export interface Client {
   companyName: string;
   contactPerson: string;
   email: string;
+  /** Additional company email addresses beyond the primary `email`. */
+  additionalEmails: string[];
   phone?: string | null;
   address?: string | null;
   industry?: string | null;
@@ -33,6 +35,7 @@ export interface ClientInput {
   companyName: string;
   contactPerson: string;
   email: string;
+  additionalEmails?: string[];
   phone?: string;
   address?: string;
   industry?: string;

@@ -9,6 +9,7 @@ export interface ProjectClientSummary {
   companyName: string;
   contactPerson: string;
   email: string;
+  additionalEmails: string[];
 }
 
 interface ProjectBase {

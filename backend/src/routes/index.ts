@@ -11,6 +11,7 @@ import * as featureRoutes from './feature.routes';
 import * as fileRoutes from './file.routes';
 import healthRoutes from './health.routes';
 import * as moduleRoutes from './module.routes';
+import * as notificationRoutes from './notification.routes';
 import projectRoutes from './project.routes';
 import shareRoutes from './share.routes';
 import * as shareLinkRoutes from './shareLink.routes';
@@ -35,6 +36,11 @@ router.use('/projects/:projectId/modules', ...adminOnly, moduleRoutes.nestedModu
 router.use('/projects/:projectId/share-links', ...adminOnly, shareLinkRoutes.nestedShareLinkRouter);
 router.use('/projects/:projectId/comments', ...adminOnly, commentRoutes.nestedCommentRouter);
 router.use('/projects/:projectId/files', ...adminOnly, fileRoutes.nestedFileRouter);
+router.use(
+  '/projects/:projectId/notifications',
+  ...adminOnly,
+  notificationRoutes.nestedNotificationRouter,
+);
 router.use('/projects', ...adminOnly, projectRoutes);
 
 router.use('/modules/:moduleId/features', ...adminOnly, featureRoutes.nestedFeatureRouter);

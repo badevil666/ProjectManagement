@@ -5,6 +5,7 @@ export interface ClientCreateData {
   companyName: string;
   contactPerson: string;
   email: string;
+  additionalEmails?: string[];
   phone?: string | null;
   address?: string | null;
   industry?: string | null;

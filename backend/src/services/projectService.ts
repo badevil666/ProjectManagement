@@ -7,7 +7,6 @@ import { NotFoundError } from '../utils/AppError';
 import { logger } from '../utils/logger';
 import { buildMeta, parsePagination } from '../utils/pagination';
 import type { ActivityService } from './activityService';
-import type { NotificationService } from './notificationService';
 import type { ProgressService } from './progressService';
 import {
   serializeProjectDetailForAdmin,
@@ -43,7 +42,6 @@ export class ProjectService {
     private readonly commentRepository: ICommentRepository,
     private readonly storageService: StorageService,
     private readonly activityService: ActivityService,
-    private readonly notificationService: NotificationService,
     private readonly progressService: ProgressService,
   ) {}
 
@@ -154,14 +152,8 @@ export class ProjectService {
       );
     }
 
-    if (isCompletingNow) {
-      await this.notificationService.notifyProjectCompleted({
-        projectId: id,
-        recipientEmail: updated.client.email,
-        projectTitle: updated.title,
-        progress: this.progressService.buildProgressSnapshot(updated.modules),
-      });
-    }
+    // Completion emails are sent explicitly by the admin (choosing recipients),
+    // not automatically on status change — see ProjectNotificationService.
 
     return serializeProjectDetailForAdmin(updated, this.progressService);
   }

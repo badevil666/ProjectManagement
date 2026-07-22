@@ -9,6 +9,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronRightIcon,
+  MailIcon,
   PencilIcon,
   TrashIcon,
 } from '@/components/ui/icons';
@@ -28,6 +29,7 @@ interface ModuleCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onStatusChange?: (status: ModuleStatus) => void;
+  onSendUpdate?: () => void;
   onAddFeature?: () => void;
   onEditFeature?: (feature: Feature) => void;
   onDeleteFeature?: (feature: Feature) => void;
@@ -48,6 +50,7 @@ export function ModuleCard({
   onEdit,
   onDelete,
   onStatusChange,
+  onSendUpdate,
   onAddFeature,
   onEditFeature,
   onDeleteFeature,
@@ -137,6 +140,15 @@ export function ModuleCard({
                     <ArrowDownIcon className="h-4 w-4" />
                   </IconButton>
                 </div>
+                {onSendUpdate && (
+                  <IconButton
+                    title="Send update email"
+                    label="Send update email"
+                    onClick={onSendUpdate}
+                  >
+                    <MailIcon className="h-4 w-4" />
+                  </IconButton>
+                )}
                 <IconButton title="Edit module" label="Edit module" onClick={onEdit}>
                   <PencilIcon className="h-4 w-4" />
                 </IconButton>

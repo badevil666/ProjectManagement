@@ -12,6 +12,7 @@ interface ModuleListProps {
   onEditModule?: (module: Module) => void;
   onDeleteModule?: (module: Module) => void;
   onModuleStatusChange?: (module: Module, status: ModuleStatus) => void;
+  onSendModuleUpdate?: (module: Module) => void;
   onReorderModules?: (order: string[]) => void;
   onCreateFeature?: (module: Module) => void;
   onEditFeature?: (feature: Feature) => void;
@@ -29,6 +30,7 @@ export function ModuleList({
   onEditModule,
   onDeleteModule,
   onModuleStatusChange,
+  onSendModuleUpdate,
   onReorderModules,
   onCreateFeature,
   onEditFeature,
@@ -82,6 +84,7 @@ export function ModuleList({
               onEdit={() => onEditModule?.(module)}
               onDelete={() => onDeleteModule?.(module)}
               onStatusChange={(status) => onModuleStatusChange?.(module, status)}
+              onSendUpdate={onSendModuleUpdate ? () => onSendModuleUpdate(module) : undefined}
               onAddFeature={() => onCreateFeature?.(module)}
               onEditFeature={onEditFeature}
               onDeleteFeature={onDeleteFeature}

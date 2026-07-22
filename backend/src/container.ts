@@ -26,6 +26,7 @@ import { createMailTransporter } from './services/mailer';
 import { ModuleService } from './services/moduleService';
 import { NotificationService } from './services/notificationService';
 import { ProgressService } from './services/progressService';
+import { ProjectNotificationService } from './services/projectNotificationService';
 import { ProjectService } from './services/projectService';
 import { ShareLinkService } from './services/shareLinkService';
 import { LocalStorageService } from './services/storage/LocalStorageService';
@@ -37,6 +38,11 @@ const mailTransporter = createMailTransporter();
 export const activityService = new ActivityService(activityRepository);
 export const notificationService = new NotificationService(notificationRepository, mailTransporter);
 export const progressService = new ProgressService(moduleRepository, projectRepository);
+export const projectNotificationService = new ProjectNotificationService(
+  projectRepository,
+  notificationService,
+  progressService,
+);
 
 export const authService = new AuthService(userRepository);
 
@@ -49,7 +55,6 @@ export const projectService = new ProjectService(
   commentRepository,
   storageService,
   activityService,
-  notificationService,
   progressService,
 );
 
@@ -58,16 +63,13 @@ export const moduleService = new ModuleService(
   featureRepository,
   projectRepository,
   activityService,
-  notificationService,
   progressService,
 );
 
 export const featureService = new FeatureService(
   featureRepository,
   moduleRepository,
-  projectRepository,
   activityService,
-  notificationService,
   progressService,
 );
 

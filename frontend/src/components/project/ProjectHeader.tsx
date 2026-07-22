@@ -19,6 +19,7 @@ interface ProjectHeaderProps {
   actualEndDate?: string | null;
   readOnly?: boolean;
   onEdit?: () => void;
+  onSendUpdate?: () => void;
 }
 
 export function ProjectHeader({
@@ -35,6 +36,7 @@ export function ProjectHeader({
   actualEndDate,
   readOnly = false,
   onEdit,
+  onSendUpdate,
 }: ProjectHeaderProps) {
   return (
     <div className="rounded-xl border border-border bg-surface p-5 sm:p-6">
@@ -50,10 +52,19 @@ export function ProjectHeader({
           </p>
           {description && <p className="mt-2 max-w-2xl text-sm text-ink-muted">{description}</p>}
         </div>
-        {!readOnly && onEdit && (
-          <Button variant="secondary" size="sm" onClick={onEdit}>
-            Edit project
-          </Button>
+        {!readOnly && (onEdit || onSendUpdate) && (
+          <div className="flex shrink-0 items-center gap-2">
+            {onSendUpdate && (
+              <Button variant="secondary" size="sm" onClick={onSendUpdate}>
+                Send update
+              </Button>
+            )}
+            {onEdit && (
+              <Button variant="secondary" size="sm" onClick={onEdit}>
+                Edit project
+              </Button>
+            )}
+          </div>
         )}
       </div>
 

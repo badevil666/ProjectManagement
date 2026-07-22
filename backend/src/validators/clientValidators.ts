@@ -6,6 +6,7 @@ export const clientCreateSchema = z
     companyName: z.string().min(1, 'companyName is required'),
     contactPerson: z.string().min(1, 'contactPerson is required'),
     email: z.string().email('Must be a valid email'),
+    additionalEmails: z.array(z.string().email('Each additional email must be valid')).optional(),
     phone: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     industry: z.string().nullable().optional(),

@@ -6,6 +6,7 @@ export interface ClientSummary {
   companyName: string;
   contactPerson: string;
   email: string;
+  additionalEmails: string[];
 }
 
 export function serializeClientSummary(client: ClientSummary) {
@@ -14,6 +15,7 @@ export function serializeClientSummary(client: ClientSummary) {
     companyName: client.companyName,
     contactPerson: client.contactPerson,
     email: client.email,
+    additionalEmails: client.additionalEmails,
   };
 }
 
@@ -23,6 +25,7 @@ export function serializeClient(client: Client) {
     companyName: client.companyName,
     contactPerson: client.contactPerson,
     email: client.email,
+    additionalEmails: client.additionalEmails,
     phone: client.phone,
     address: client.address,
     industry: client.industry,

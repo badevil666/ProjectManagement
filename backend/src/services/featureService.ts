@@ -1,10 +1,8 @@
 import type { FeaturePriority, FeatureStatus } from '@prisma/client';
 import type { IFeatureRepository } from '../repositories/featureRepository';
 import type { IModuleRepository } from '../repositories/moduleRepository';
-import type { IProjectRepository, ProjectDetail } from '../repositories/projectRepository';
 import { NotFoundError, ValidationError } from '../utils/AppError';
 import type { ActivityService } from './activityService';
-import type { NotificationService } from './notificationService';
 import type { ProgressService } from './progressService';
 import { serializeFeature } from './serializers/featureSerializer';
 
@@ -19,9 +17,7 @@ export class FeatureService {
   constructor(
     private readonly featureRepository: IFeatureRepository,
     private readonly moduleRepository: IModuleRepository,
-    private readonly projectRepository: IProjectRepository,
     private readonly activityService: ActivityService,
-    private readonly notificationService: NotificationService,
     private readonly progressService: ProgressService,
   ) {}
 
@@ -82,16 +78,6 @@ export class FeatureService {
           `Module "${module.title}" completed`,
           actorId,
         );
-        const project = await this.projectRepository.findById(module.projectId);
-        if (project) {
-          await this.notificationService.notifyModuleCompleted({
-            projectId: module.projectId,
-            recipientEmail: project.client.email,
-            projectTitle: project.title,
-            moduleTitle: module.title,
-            progress: this.progressService.buildProgressSnapshot(project.modules),
-          });
-        }
       }
     }
   }
@@ -141,19 +127,9 @@ export class FeatureService {
 
     const updated = await this.featureRepository.updateStatus(id, status, completedAt);
 
-    // Memoized project lookup — used at most once even if both the feature
-    // AND its parent module complete as part of this single request.
-    let cachedProject: ProjectDetail | null | undefined;
-    const getProject = async (): Promise<ProjectDetail | null> => {
-      if (cachedProject === undefined) {
-        cachedProject = await this.projectRepository.findById(module.projectId);
-      }
-      return cachedProject;
-    };
-
-    // Sync the parent module's status and persist project progress BEFORE
-    // sending any completion email, so the email's progress snapshot (and the
-    // project it re-fetches) reflect this very change.
+    // Sync the parent module's status and persist project progress. Completion
+    // emails are NOT sent automatically — the admin sends project updates
+    // explicitly, choosing recipients (see ProjectNotificationService).
     const syncResult = await this.progressService.syncModuleStatusAfterFeatureChange(module.id);
     await this.progressService.recomputeProjectProgress(module.projectId);
 
@@ -164,17 +140,6 @@ export class FeatureService {
         `Feature "${updated.title}" completed`,
         actorId,
       );
-      const project = await getProject();
-      if (project) {
-        await this.notificationService.notifyFeatureCompleted({
-          projectId: module.projectId,
-          recipientEmail: project.client.email,
-          projectTitle: project.title,
-          moduleTitle: module.title,
-          featureTitle: updated.title,
-          progress: this.progressService.buildProgressSnapshot(project.modules),
-        });
-      }
     }
 
     if (syncResult.becameCompleted) {
@@ -184,16 +149,6 @@ export class FeatureService {
         `Module "${module.title}" completed`,
         actorId,
       );
-      const project = await getProject();
-      if (project) {
-        await this.notificationService.notifyModuleCompleted({
-          projectId: module.projectId,
-          recipientEmail: project.client.email,
-          projectTitle: project.title,
-          moduleTitle: module.title,
-          progress: this.progressService.buildProgressSnapshot(project.modules),
-        });
-      }
     }
 
     return serializeFeature(updated);

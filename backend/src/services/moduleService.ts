@@ -4,7 +4,6 @@ import type { IModuleRepository } from '../repositories/moduleRepository';
 import type { IProjectRepository } from '../repositories/projectRepository';
 import { NotFoundError, ValidationError } from '../utils/AppError';
 import type { ActivityService } from './activityService';
-import type { NotificationService } from './notificationService';
 import type { ProgressService } from './progressService';
 import { serializeModuleWithFeatures } from './serializers/moduleSerializer';
 
@@ -26,7 +25,6 @@ export class ModuleService {
     private readonly featureRepository: IFeatureRepository,
     private readonly projectRepository: IProjectRepository,
     private readonly activityService: ActivityService,
-    private readonly notificationService: NotificationService,
     private readonly progressService: ProgressService,
   ) {}
 
@@ -119,17 +117,8 @@ export class ModuleService {
           actorId,
         );
         await this.progressService.recomputeProjectProgress(existing.projectId);
-
-        const project = await this.projectRepository.findById(existing.projectId);
-        if (project) {
-          await this.notificationService.notifyModuleCompleted({
-            projectId: existing.projectId,
-            recipientEmail: project.client.email,
-            projectTitle: project.title,
-            moduleTitle: existing.title,
-            progress: this.progressService.buildProgressSnapshot(project.modules),
-          });
-        }
+        // Completion emails are sent explicitly by the admin, not automatically
+        // (see ProjectNotificationService).
       }
     } else {
       await this.moduleRepository.updateStatus(id, status, null);

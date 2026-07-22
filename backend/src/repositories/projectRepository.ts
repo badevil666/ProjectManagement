@@ -31,6 +31,7 @@ const clientSummarySelect = {
   companyName: true,
   contactPerson: true,
   email: true,
+  additionalEmails: true,
 } satisfies Prisma.ClientSelect;
 
 const projectListInclude = {

@@ -4,6 +4,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { TextArea } from '@/components/ui/TextArea';
+import { IconButton } from '@/components/ui/IconButton';
+import { TrashIcon } from '@/components/ui/icons';
 
 interface ClientFormModalProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ export function ClientFormModal({
   onClose,
 }: ClientFormModalProps) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [additionalEmails, setAdditionalEmails] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,11 +48,18 @@ export function ClientFormModal({
         industry: client?.industry ?? '',
         notes: client?.notes ?? '',
       });
+      setAdditionalEmails(client?.additionalEmails ?? []);
     }
   }, [isOpen, client]);
 
   const update = (field: keyof typeof form) => (event: { target: { value: string } }) =>
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
+
+  const addEmail = () => setAdditionalEmails((prev) => [...prev, '']);
+  const updateEmail = (index: number, value: string) =>
+    setAdditionalEmails((prev) => prev.map((email, i) => (i === index ? value : email)));
+  const removeEmail = (index: number) =>
+    setAdditionalEmails((prev) => prev.filter((_, i) => i !== index));
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -57,6 +67,7 @@ export function ClientFormModal({
       companyName: form.companyName.trim(),
       contactPerson: form.contactPerson.trim(),
       email: form.email.trim(),
+      additionalEmails: additionalEmails.map((e) => e.trim()).filter(Boolean),
       phone: form.phone.trim() || undefined,
       address: form.address.trim() || undefined,
       industry: form.industry.trim() || undefined,
@@ -100,8 +111,50 @@ export function ClientFormModal({
           value={form.contactPerson}
           onChange={update('contactPerson')}
         />
-        <Input label="Email" type="email" required value={form.email} onChange={update('email')} />
+        <Input
+          label="Primary email"
+          type="email"
+          required
+          value={form.email}
+          onChange={update('email')}
+        />
         <Input label="Phone" value={form.phone} onChange={update('phone')} />
+
+        <div className="sm:col-span-2">
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="block text-sm font-medium text-ink">Additional emails</label>
+            <Button type="button" variant="ghost" size="sm" onClick={addEmail}>
+              + Add email
+            </Button>
+          </div>
+          {additionalEmails.length === 0 ? (
+            <p className="text-xs text-ink-subtle">
+              Add other people at the company who should be able to receive project updates.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {additionalEmails.map((email, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="email"
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => updateEmail(index, e.target.value)}
+                    className="flex-1"
+                  />
+                  <IconButton
+                    title="Remove email"
+                    label="Remove email"
+                    danger
+                    onClick={() => removeEmail(index)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </IconButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <Input label="Industry" value={form.industry} onChange={update('industry')} />
         <Input label="Address" value={form.address} onChange={update('address')} />
         <div className="sm:col-span-2">

@@ -27,7 +27,13 @@ import {
   ProjectTimeline,
   ShareLinkPanel,
 } from '@/components/project';
+import { SendUpdateModal } from '@/components/project/SendUpdateModal';
 import type { Feature, Module, ProjectFile, ProjectInput } from '@/types';
+
+type SendUpdateState =
+  | { kind: 'MODULE'; moduleId: string; label: string }
+  | { kind: 'PROJECT'; label: string }
+  | null;
 
 type ModuleModalState = { mode: 'create' } | { mode: 'edit'; module: Module } | null;
 type FeatureModalState =
@@ -62,6 +68,7 @@ export function ProjectDetail() {
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [sendUpdate, setSendUpdate] = useState<SendUpdateState>(null);
 
   if (!id) return <ErrorState message="Missing project id." />;
   if (projectQuery.isLoading) return <LoadingState label="Loading project…" />;
@@ -72,6 +79,7 @@ export function ProjectDetail() {
   }
 
   const project = projectQuery.data;
+  const clientEmails = [project.client.email, ...project.client.additionalEmails];
 
   const handleDownload = async (file: ProjectFile) => {
     setDownloadError(null);
@@ -117,6 +125,7 @@ export function ProjectDetail() {
         expectedEndDate={project.expectedEndDate}
         actualEndDate={project.actualEndDate}
         onEdit={() => setIsEditProjectOpen(true)}
+        onSendUpdate={() => setSendUpdate({ kind: 'PROJECT', label: project.title })}
       />
 
       <Card>
@@ -132,6 +141,9 @@ export function ProjectDetail() {
             onDeleteModule={(module) => setDeleteModuleTarget(module)}
             onModuleStatusChange={(module, status) =>
               moduleMutations.updateStatus.mutate({ id: module.id, status })
+            }
+            onSendModuleUpdate={(module) =>
+              setSendUpdate({ kind: 'MODULE', moduleId: module.id, label: module.title })
             }
             onReorderModules={(order) => moduleMutations.reorderModules.mutate(order)}
             onCreateFeature={(module) => setFeatureModal({ mode: 'create', moduleId: module.id })}
@@ -365,6 +377,16 @@ export function ProjectDetail() {
           deleteFile.mutate(deleteFileTarget.id, { onSuccess: () => setDeleteFileTarget(null) });
         }}
         onCancel={() => setDeleteFileTarget(null)}
+      />
+
+      <SendUpdateModal
+        isOpen={sendUpdate !== null}
+        onClose={() => setSendUpdate(null)}
+        projectId={id}
+        clientEmails={clientEmails}
+        kind={sendUpdate?.kind ?? 'PROJECT'}
+        moduleId={sendUpdate?.kind === 'MODULE' ? sendUpdate.moduleId : undefined}
+        contextLabel={sendUpdate?.label ?? ''}
       />
     </div>
   );
