@@ -77,63 +77,68 @@ const FEATURE_STATUS: Record<FeatureStatus, { label: string; dot: string }> = {
   COMPLETED: { label: 'Completed', dot: '#16a34a' },
 };
 
-/** A beautiful, email-safe breakdown of every module and its features. */
+/** A single module card (header + feature list). Sits inside a grid cell. */
+function moduleCard(module: EmailModuleSummary): string {
+  const mod = MODULE_STATUS[module.status];
+  const featureRows =
+    module.features.length === 0
+      ? `<tr>
+          <td style="border-top:1px solid ${C.hairline};padding:9px 12px;font-size:13px;color:${C.inkMuted};">No features yet</td>
+        </tr>`
+      : module.features
+          .map((feature) => {
+            const feat = FEATURE_STATUS[feature.status];
+            return `<tr>
+              <td style="border-top:1px solid ${C.hairline};padding:9px 12px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <span style="display:inline-block;width:7px;height:7px;border-radius:9999px;background:${feat.dot};"></span>
+                      <span style="font-size:13px;color:${C.ink};padding-left:8px;">${escapeHtml(feature.title)}</span>
+                    </td>
+                    <td align="right" style="vertical-align:middle;font-size:12px;color:${C.inkMuted};white-space:nowrap;padding-left:8px;">${feat.label}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>`;
+          })
+          .join('');
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;">
+    <tr>
+      <td style="background:${C.footerBg};padding:11px 12px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="vertical-align:middle;font-size:14px;font-weight:600;color:${C.ink};">${escapeHtml(module.title)}</td>
+            <td align="right" style="vertical-align:middle;white-space:nowrap;padding-left:8px;">
+              <span style="font-size:12px;color:${C.inkMuted};padding-right:6px;">${module.progress}%</span>
+              ${pill(mod.label, mod.kind)}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    ${featureRows}
+  </table>`;
+}
+
+/** Modules laid out as a 2-column grid (stacks to 1 column on mobile). */
 function modulesBreakdown(modules: EmailModuleSummary[]): string {
   if (modules.length === 0) return '';
 
-  const blocks = modules
-    .map((module) => {
-      const mod = MODULE_STATUS[module.status];
-      const featureRows =
-        module.features.length === 0
-          ? `<tr>
-              <td style="border-top:1px solid ${C.hairline};padding:9px 14px;font-size:13px;color:${C.inkMuted};">No features yet</td>
-            </tr>`
-          : module.features
-              .map((feature) => {
-                const feat = FEATURE_STATUS[feature.status];
-                return `<tr>
-                  <td style="border-top:1px solid ${C.hairline};padding:9px 14px;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                      <tr>
-                        <td style="vertical-align:middle;">
-                          <span style="display:inline-block;width:7px;height:7px;border-radius:9999px;background:${feat.dot};"></span>
-                          <span style="font-size:13px;color:${C.ink};padding-left:8px;">${escapeHtml(
-                            feature.title,
-                          )}</span>
-                        </td>
-                        <td align="right" style="vertical-align:middle;font-size:12px;color:${C.inkMuted};white-space:nowrap;">${feat.label}</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>`;
-              })
-              .join('');
-
-      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;margin:0 0 10px;">
-        <tr>
-          <td style="background:${C.footerBg};padding:11px 14px;">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td style="vertical-align:middle;font-size:14px;font-weight:600;color:${C.ink};">${escapeHtml(
-                  module.title,
-                )}</td>
-                <td align="right" style="vertical-align:middle;white-space:nowrap;">
-                  <span style="font-size:12px;color:${C.inkMuted};padding-right:8px;">${module.progress}%</span>
-                  ${pill(mod.label, mod.kind)}
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        ${featureRows}
-      </table>`;
-    })
-    .join('');
+  const rows: string[] = [];
+  for (let i = 0; i < modules.length; i += 2) {
+    const left = modules[i];
+    const right = modules[i + 1];
+    rows.push(`<tr>
+      <td class="mod-col" width="50%" valign="top" style="padding:0 6px 12px 0;">${left ? moduleCard(left) : ''}</td>
+      <td class="mod-col" width="50%" valign="top" style="padding:0 0 12px 6px;">${right ? moduleCard(right) : ''}</td>
+    </tr>`);
+  }
 
   return `<div style="margin-top:22px;">
     <p style="margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:0.02em;text-transform:uppercase;color:${C.inkMuted};">Modules &amp; features</p>
-    ${blocks}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join('')}</table>
   </div>`;
 }
 
@@ -210,6 +215,15 @@ function layout({ preheader, pillHtml, heading, bodyHtml }: LayoutParams): strin
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light" />
+    <style>
+      @media only screen and (max-width: 480px) {
+        .mod-col {
+          display: block !important;
+          width: 100% !important;
+          padding: 0 0 12px 0 !important;
+        }
+      }
+    </style>
   </head>
   <body style="margin:0;padding:0;background:${C.pageBg};font-family:${FONT};-webkit-font-smoothing:antialiased;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
