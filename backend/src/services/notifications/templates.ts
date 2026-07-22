@@ -137,24 +137,6 @@ function modulesBreakdown(modules: EmailModuleSummary[]): string {
   </div>`;
 }
 
-/** A bordered "receipt"-style block of label → value rows. Values are escaped. */
-function detailBlock(rows: { label: string; value: string }[]): string {
-  const inner = rows
-    .map((row, i) => {
-      const top = i === 0 ? '' : `border-top:1px solid ${C.hairline};`;
-      return `<tr>
-        <td style="${top}padding:10px 14px;font-size:12px;color:${C.inkMuted};width:96px;vertical-align:top;">${escapeHtml(
-          row.label,
-        )}</td>
-        <td style="${top}padding:10px 14px;font-size:14px;font-weight:500;color:${C.ink};vertical-align:top;">${escapeHtml(
-          row.value,
-        )}</td>
-      </tr>`;
-    })
-    .join('');
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;margin:4px 0 4px;">${inner}</table>`;
-}
-
 function quote(text: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0;">
     <tr>
@@ -169,17 +151,35 @@ function lead(text: string): string {
   return `<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:${C.inkBody};">${text}</p>`;
 }
 
-/** A labeled, email-safe overall-progress bar (nested tables, % width fill). */
-function progressSection(percent: number): string {
-  const pct = Math.max(0, Math.min(100, Math.round(percent)));
+/**
+ * A horizontal summary: three stat columns (progress / modules / features done)
+ * across the top, and a full-width progress bar underneath. Uses the email's
+ * horizontal space rather than stacking everything vertically.
+ */
+function summaryCard(progress: ProjectProgressSnapshot): string {
+  const pct = Math.max(0, Math.min(100, Math.round(progress.overallProgress)));
+  const moduleCount = progress.modules.length;
+  const totalFeatures = progress.modules.reduce((sum, m) => sum + m.features.length, 0);
+  const doneFeatures = progress.modules.reduce(
+    (sum, m) => sum + m.features.filter((f) => f.status === 'COMPLETED').length,
+    0,
+  );
   const fillMinWidth = pct === 0 ? '0' : '8';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+
+  const stat = (label: string, value: string, borderLeft: boolean): string =>
+    `<td width="33%" style="${borderLeft ? `border-left:1px solid ${C.hairline};` : ''}padding:14px 16px;vertical-align:top;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${C.inkMuted};">${label}</div>
+      <div style="margin-top:5px;font-size:20px;font-weight:600;line-height:1;color:${C.ink};">${value}</div>
+    </td>`;
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;margin:4px 0;">
     <tr>
-      <td style="font-size:12px;color:${C.inkMuted};padding:0 0 8px;">Project progress</td>
-      <td align="right" style="font-size:14px;font-weight:600;color:${C.ink};padding:0 0 8px;">${pct}%</td>
+      ${stat('Progress', `${pct}%`, false)}
+      ${stat('Modules', String(moduleCount), true)}
+      ${stat('Features done', `${doneFeatures} / ${totalFeatures}`, true)}
     </tr>
     <tr>
-      <td colspan="2" style="padding:0;">
+      <td colspan="3" style="border-top:1px solid ${C.hairline};padding:14px 16px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.track};border-radius:9999px;">
           <tr>
             <td style="padding:0;font-size:0;line-height:0;">
@@ -216,7 +216,7 @@ function layout({ preheader, pillHtml, heading, bodyHtml }: LayoutParams): strin
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.pageBg};padding:32px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:${C.card};border:1px solid ${C.border};border-radius:14px;overflow:hidden;">
+          <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:${C.card};border:1px solid ${C.border};border-radius:14px;overflow:hidden;">
             <tr>
               <td style="padding:18px 28px;border-bottom:1px solid ${C.hairline};">
                 <table role="presentation" cellpadding="0" cellspacing="0">
@@ -296,12 +296,7 @@ export function moduleUpdateTemplate(params: {
             ? `The <strong style="color:${C.ink};">${escapeHtml(moduleTitle)}</strong> module in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> is complete.`
             : `Here's the latest on the <strong style="color:${C.ink};">${escapeHtml(moduleTitle)}</strong> module in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong>.`,
         ) +
-        detailBlock([
-          { label: 'Project', value: projectTitle },
-          { label: 'Module', value: moduleTitle },
-          { label: 'Status', value: mod.label },
-        ]) +
-        progressSection(progress.overallProgress) +
+        summaryCard(progress) +
         modulesBreakdown(progress.modules),
     }),
     text:
@@ -338,13 +333,7 @@ export function featureUpdateTemplate(params: {
             ? `A feature in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> is complete.`
             : `Here's the latest on a feature in <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong>.`,
         ) +
-        detailBlock([
-          { label: 'Project', value: projectTitle },
-          { label: 'Module', value: moduleTitle },
-          { label: 'Feature', value: featureTitle },
-          { label: 'Status', value: label },
-        ]) +
-        progressSection(progress.overallProgress) +
+        summaryCard(progress) +
         modulesBreakdown(progress.modules),
     }),
     text:
@@ -379,11 +368,7 @@ export function projectUpdateTemplate(params: {
             ? `Great news — <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong> has been delivered and marked complete. Thank you for working with us.`
             : `Here's the latest progress on <strong style="color:${C.ink};">${escapeHtml(projectTitle)}</strong>.`,
         ) +
-        detailBlock([
-          { label: 'Project', value: projectTitle },
-          { label: 'Status', value: proj.label },
-        ]) +
-        progressSection(progress.overallProgress) +
+        summaryCard(progress) +
         modulesBreakdown(progress.modules),
     }),
     text:
