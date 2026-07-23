@@ -25,6 +25,18 @@ export interface SendCompletionResult {
   recipients: string[];
 }
 
+export interface BuildEmailInput {
+  kind: CompletionEmailKind;
+  moduleId?: string;
+  featureId?: string;
+}
+
+export interface EmailPreview {
+  subject: string;
+  html: string;
+  text: string;
+}
+
 /**
  * Builds and sends a project-update email on explicit admin request, to a
  * chosen subset of the client's email addresses. This replaces the previous
@@ -38,24 +50,19 @@ export class ProjectNotificationService {
     private readonly progressService: ProgressService,
   ) {}
 
-  async sendCompletionEmail(
+  /**
+   * Builds the email content (subject/html/text) for the given target without
+   * sending it. Shared by the preview endpoint and the send path.
+   */
+  private async buildEmail(
     projectId: string,
-    input: SendCompletionInput,
-  ): Promise<SendCompletionResult> {
+    input: BuildEmailInput,
+  ): Promise<{ content: EmailContent; type: NotificationType; recipientPool: string[] }> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) throw new NotFoundError('Project not found');
 
-    // Recipients must be among the client's known email addresses — you can
-    // only send to people already on the client record.
-    const allowed = new Set([project.client.email, ...project.client.additionalEmails]);
-    const invalid = input.recipients.filter((email) => !allowed.has(email));
-    if (invalid.length > 0) {
-      throw new ValidationError("Recipients must be one of the client's email addresses", {
-        invalid,
-      });
-    }
-
     const progress = this.progressService.buildProgressSnapshot(project.modules);
+    const recipientPool = [project.client.email, ...project.client.additionalEmails];
 
     let content: EmailContent;
     let type: NotificationType;
@@ -90,6 +97,31 @@ export class ProjectNotificationService {
         progress,
       });
       type = 'PROJECT_COMPLETED';
+    }
+
+    return { content, type, recipientPool };
+  }
+
+  /** Renders the exact email that would be sent, for an in-app preview. */
+  async previewEmail(projectId: string, input: BuildEmailInput): Promise<EmailPreview> {
+    const { content } = await this.buildEmail(projectId, input);
+    return { subject: content.subject, html: content.html, text: content.text };
+  }
+
+  async sendCompletionEmail(
+    projectId: string,
+    input: SendCompletionInput,
+  ): Promise<SendCompletionResult> {
+    const { content, type, recipientPool } = await this.buildEmail(projectId, input);
+
+    // Recipients must be among the client's known email addresses — you can
+    // only send to people already on the client record.
+    const allowed = new Set(recipientPool);
+    const invalid = input.recipients.filter((email) => !allowed.has(email));
+    if (invalid.length > 0) {
+      throw new ValidationError("Recipients must be one of the client's email addresses", {
+        invalid,
+      });
     }
 
     const { sent, failed } = await this.notificationService.sendToRecipients({

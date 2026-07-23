@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { useSendProjectEmail } from '@/hooks/useSendProjectEmail';
 import { isApiError } from '@/services/api/apiError';
-import type { CompletionEmailKind } from '@/services/api/notifications';
+import { notificationsApi, type CompletionEmailKind } from '@/services/api/notifications';
 
 interface SendUpdateModalProps {
   isOpen: boolean;
@@ -31,6 +32,13 @@ export function SendUpdateModal({
   const [selected, setSelected] = useState<string[]>([]);
   const sendEmail = useSendProjectEmail(projectId);
 
+  const previewQuery = useQuery({
+    queryKey: ['email-preview', projectId, kind, moduleId ?? null, featureId ?? null],
+    queryFn: () => notificationsApi.preview(projectId, { kind, moduleId, featureId }),
+    enabled: isOpen && clientEmails.length > 0,
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
     if (isOpen) {
       setSelected(clientEmails);
@@ -46,13 +54,13 @@ export function SendUpdateModal({
     );
 
   const result = sendEmail.data;
-  const kindLabel = kind === 'MODULE' ? 'Module' : kind === 'FEATURE' ? 'Feature' : 'Project';
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Send project update"
+      size="lg"
       footer={
         result ? (
           <Button onClick={onClose}>Done</Button>
@@ -96,13 +104,49 @@ export function SendUpdateModal({
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-ink-muted">
-            A progress update for{' '}
-            <span className="font-medium text-ink">
-              {kindLabel}: {contextLabel}
-            </span>{' '}
-            (with the current overall progress and module/feature status) will be emailed to the
-            recipients you choose.
+            This is exactly what {selected.length === 1 ? 'the recipient' : 'recipients'} will
+            receive for <span className="font-medium text-ink">{contextLabel}</span>. Review it
+            before sending.
           </p>
+
+          <div>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-subtle">
+              Subject
+            </p>
+            <p className="rounded-md border border-border bg-surface-alt px-3 py-2 text-sm font-medium text-ink">
+              {previewQuery.data?.subject ?? '…'}
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-subtle">
+              Preview
+            </p>
+            <div className="overflow-hidden rounded-md border border-border">
+              {previewQuery.isLoading ? (
+                <div className="p-8 text-center text-sm text-ink-muted">Loading preview…</div>
+              ) : previewQuery.isError ? (
+                <div className="p-8 text-center text-sm text-red-600 dark:text-red-400">
+                  Couldn&rsquo;t load the preview.{' '}
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => previewQuery.refetch()}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <iframe
+                  title="Email preview"
+                  srcDoc={previewQuery.data?.html ?? ''}
+                  sandbox=""
+                  className="block h-[360px] w-full bg-white"
+                />
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
               Recipients
@@ -122,6 +166,7 @@ export function SendUpdateModal({
               </label>
             ))}
           </div>
+
           {sendEmail.isError && (
             <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
               {isApiError(sendEmail.error) ? sendEmail.error.message : 'Failed to send.'}

@@ -18,3 +18,21 @@ export const sendCompletionEmailSchema = z
   });
 
 export type SendCompletionEmailInput = z.infer<typeof sendCompletionEmailSchema>;
+
+export const previewCompletionEmailSchema = z
+  .object({
+    kind: z.enum(['MODULE', 'FEATURE', 'PROJECT']),
+    moduleId: z.string().uuid().optional(),
+    featureId: z.string().uuid().optional(),
+  })
+  .strict()
+  .refine((value) => value.kind !== 'MODULE' || Boolean(value.moduleId), {
+    message: 'moduleId is required when kind is MODULE',
+    path: ['moduleId'],
+  })
+  .refine((value) => value.kind !== 'FEATURE' || Boolean(value.featureId), {
+    message: 'featureId is required when kind is FEATURE',
+    path: ['featureId'],
+  });
+
+export type PreviewCompletionEmailInput = z.infer<typeof previewCompletionEmailSchema>;
